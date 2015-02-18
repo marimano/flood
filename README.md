@@ -1,26 +1,4 @@
-![Image](https://raw.github.com/pboyer/flood/master/extra/screenshot.png) 
-
-
-##flood
-
-###What is it?
-
-flood is a [dataflow](http://en.wikipedia.org/wiki/Dataflow_programming)-style visual programming language based on Scheme that runs on JavaScript.  It is based on the [Dynamo](http://github.com/ikeough/Dynamo) visual programming language.  flood runs in a browser and as a standalone application on all platforms via [node-webkit](https://github.com/rogerwang/node-webkit).  
-
-###Features
-
-* Continuous autosave (a la Google Drive)
-* Instant node search
-* Undo/redo (maintained across user sessions)
-* Copy/paste
-* Multiple workspaces
-* Background thread evaluation
-* Partial function application
-* Formula node - evaluate javascript in a node
-* Constructive solid geometry - Cube, cylinder, sphere, union, intersect, subtract
-* "Always on" continuous execution
-
-flood, like early versions of Dynamo, is based on Scheme and thus has many of the features of that language.  It uses a [lightweight scheme interpreter](http://github.com/pboyer/scheme.js) I wrote called scheme.js.
+# Flood on Reach
 
 ###Getting started
 
