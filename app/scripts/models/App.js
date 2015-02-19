@@ -135,17 +135,22 @@ define(['backbone', 'Workspaces', 'Node', 'Login', 'Workspace', 'SearchElements'
         }
     },
 
-    newWorkspace: function( callback ){
+    newWorkspace: function( callback, initData ) {
 
-      this.context.createNewWorkspace().done(function(data){
+      this.context.createNewWorkspace().done(function (data) {
+
+        if (initData) {
+          data.connections = initData.connections;
+          data.nodes = initData.nodes;
+        }
 
         data.name = 'Home';
-        var ws = new Workspace(data, {app: this });
-        this.get('workspaces').add( ws );
-        this.set('currentWorkspace', ws.get('_id') );
-        if (callback) callback( ws );
+        var ws = new Workspace(data, {app: this});
+        this.get('workspaces').add(ws);
+        this.set('currentWorkspace', ws.get('_id'));
+        if (callback) callback(ws);
 
-      }.bind(this)).fail(function(){
+      }.bind(this)).fail(function () {
 
         console.error("failed to get new workspace");
 
@@ -153,7 +158,7 @@ define(['backbone', 'Workspaces', 'Node', 'Login', 'Workspace', 'SearchElements'
 
     },
 
-    newNodeWorkspace: function( callback, customNodeName, lazyInit  ) {
+    newNodeWorkspace: function( callback, customNodeName, initData  ) {
       this.context.createNewNodeWorkspace().done(function(data){
 
         data.isCustomNode = true;
@@ -161,11 +166,16 @@ define(['backbone', 'Workspaces', 'Node', 'Login', 'Workspace', 'SearchElements'
         data.name = customNodeName;
 
         var attr = { app : this };
-        // if we need to not send it to the dynamo
-        if (lazyInit ) {
-            data.notNotifyServer = true;
-            attr.lazyInit  = true;
+        // if we need to not send it to Dynamo
+
+        if (initData) {
+          data.notNotifyServer = true;
+          data.connections = initData.connections;
+          data.nodes = initData.nodes;
+          data.name = initData.name;
+          data.guid = initData.guid;
         }
+
         var ws = new Workspace(data, attr);
 
         this.get('workspaces').add( ws );
@@ -189,16 +199,18 @@ define(['backbone', 'Workspaces', 'Node', 'Login', 'Workspace', 'SearchElements'
 
     },
 
-    loadWorkspace: function( id, callback, silent, makeCurrent ) {
+    loadWorkspace: function( id, callback, makeCurrent, initData ) {
 
         this.context.loadWorkspace(id).done(function (data) {
             var allWorkspaces = this.get('workspaces');
             var ws = allWorkspaces.get(id);
             if (ws) return;
 
-            // if we need to not send it to dynamo
-            if (silent) {
-                data.notNotifyServer = true;
+            if (initData) {
+              // if we need to not send it to dynamo
+              data.notNotifyServer = true;
+              data.connections = initData.connections;
+              data.nodes = initData.nodes;
             }
 
             // if we try to open another Home ws
@@ -217,7 +229,7 @@ define(['backbone', 'Workspaces', 'Node', 'Login', 'Workspace', 'SearchElements'
             });
 
             allWorkspaces.add(ws);
-            
+
             if (makeCurrent) {
                 this.set('currentWorkspace', ws.get('_id'));
             }
@@ -256,7 +268,7 @@ define(['backbone', 'Workspaces', 'Node', 'Login', 'Workspace', 'SearchElements'
 
     },
 
-    openWorkspace: function( id, callback, silent ){
+    openWorkspace: function( id, callback, initData ){
 
       this.removeWorkspaceFromBackground( id );
 
@@ -271,7 +283,7 @@ define(['backbone', 'Workspaces', 'Node', 'Login', 'Workspace', 'SearchElements'
         this.set('currentWorkspace', ws.get('_id') );
         if (callback) callback( ws );
 
-      }.bind(this), null, silent);
+      }.bind(this), null, initData);
 
     },
 
@@ -287,7 +299,7 @@ define(['backbone', 'Workspaces', 'Node', 'Login', 'Workspace', 'SearchElements'
       if ( this.get('currentWorkspace') === null || !this.get('workspaces').get(this.get('currentWorkspace'))) {
         var ele = this.get('workspaces').at(0);
         this.set('currentWorkspace', ele.get('_id') );
-      } 
+      }
 
       this.get('workspaces').get(this.get('currentWorkspace')).set('current', true);
     }

@@ -121,10 +121,7 @@ define(['backbone', 'Nodes', 'Connection', 'Connections', 'scheme', 'FLOOD', 'Ru
 
         this.set('tabName', this.get('name'));
 
-        // if lazyInit is set to true it means
-        // the workspace hasn't right now all proper data
-        // for correct initialization (name, guid, nodes, etc)
-        if (this.get('isCustomNode') && !arr.lazyInit) {
+        if (this.get('isCustomNode')) {
             this.initializeCustomNode();
         }
 
@@ -150,78 +147,83 @@ define(['backbone', 'Nodes', 'Connection', 'Connections', 'scheme', 'FLOOD', 'Ru
 
     },
 
-    createNodes: function(data, browserViewWorkspaces){
-
-      var i;
-      var oldNodes = this.get('nodes');
-      if (oldNodes && oldNodes.models && oldNodes.models.length) {
-            oldNodes = oldNodes.models;
-            for(i = 0; i < oldNodes.length; i++) {
-                this.trigger('clearNodeGeometry', {id: oldNodes[i].get('_id')});
-            }
+    clearAllNodeGeometry: function () {
+      var nodes = this.get('nodes');
+      if (nodes && nodes.each) {
+        nodes.each(function (node) {
+          this.trigger('clearNodeGeometry', {id: node.get('_id')});
+        });
       }
+    },
+
+    createNodes: function(data){
+
+      this.clearAllNodeGeometry();
 
       this.set('nodes', new Nodes());
-      var guid, workspaces, id, node, index;
+      var i, guid, workspaces, id, oldId, index, node, ws, nodeModel;
       var allWorkspaces = this.app.get('workspaces');
+      var deps = this.get('workspaceDependencyIds');
+      var browserWorkspaces = this.app.workspaceBrowser ? this.app.workspaceBrowser.get('workspaces') : null;
+
       for(i = 0; i < data.nodes.length; i++) {
           node = data.nodes[i];
 
           // besides creating nodes we should set all dependencies
-          if (node.isCustomNode) {
+          if (node.typeName === 'CustomNode') {
               guid = node.extra.creationName;
               workspaces = allWorkspaces.where({ guid: guid });
               // if this custom node definition is not loaded
-              if (workspaces.length === 0) {
-                  index = -1;
-                  // try find custom node definition in browser view
-                  if (browserViewWorkspaces) {
-                      index = browserViewWorkspaces.map(function (pair) {
-                          return pair.guid;
-                      }).indexOf(guid);
+              if (!workspaces.length) {
+                  ws = null;
+                  // try find custom node definition in workspace browser
+                  if (browserWorkspaces) {
+                      workspaces = browserWorkspaces.where({ guid: guid });
+                      if (workspaces.length)
+                          ws = workspaces[0];
                   }
-                  if (index > -1) {
-                      id = browserViewWorkspaces[index].id;
-                      node.extra.functionId = id;
+
+                  if (ws) {
+                      id = ws.get('_id');
+                      node.extra.functionId = ws.get('_id');
+                      node.extra.isProxy = false;
                   }
                   // if there is no needed custom node definition
                   // make the node proxy
                   else {
                       node.extra.isProxy = true;
+                      oldId = node.extra.functionId;
+                      if (oldId) {
+                          node.extra.functionId = null;
+                          index = deps.indexOf(oldId);
+                          if (index > -1) {
+                            deps.splice(index, 1);
+                          }
+                      }
                   }
               }
               else {
                   id = workspaces[0].get('_id');
                   node.extra.functionId = id;
+                  node.extra.isProxy = false;
               }
           }
-        nodeModel = nodeFactory.create({
-            config: node,
-            searchElements: this.app.SearchElements
-        });
 
-        this.subscribeOnNodeEvents(nodeModel);
-        this.get('nodes').add(nodeModel);
+          nodeModel = nodeFactory.create({
+              config: node,
+              searchElements: this.app.SearchElements
+          });
 
-        // if this custom node is not proxy and dependency haven't been added yet
-        if (id && this.get('workspaceDependencyIds').indexOf(id) === -1) {
-            if (workspaces.length)
-                this.addWorkspaceDependency(id);
-            else {
-                // add id here as well because
-                // loadWorkspace will be executed after this method
-                // and in this way we won't call loadWorkspace
-                // for the same id more than once
-                this.get('workspaceDependencyIds').push(id);
-                this.app.loadWorkspace(id, function(ws) {
-                    // it will delete duplicates in the dependencies
-                    // and add dependencies of ws
-                    this.addWorkspaceDependency(ws.get('_id'));
-                }.bind(this));
-            }
-        }
-        // reset id
-        id = null;
+          this.subscribeOnNodeEvents(nodeModel);
+          this.get('nodes').add(nodeModel);
+
+          // if this custom node is not proxy and dependency haven't been added yet
+          if (id && this.get('workspaceDependencyIds').indexOf(id) === -1) {
+              this.get('workspaceDependencyIds').push(id);
+          }
+
+          // reset id
+          id = null;
       }
     },
 

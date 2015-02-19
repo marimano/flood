@@ -46,8 +46,8 @@ define(['backbone', 'staticHelpers'], function (Backbone, staticHelpers) {
     }
 
     function NodeCreationDataResponse(data) {
-        this.workspaceId = data.workspaceId;
-        this.workspaceName = data.workspaceName;
+        this.guid = data.workspaceId;
+        this.name = data.workspaceName;
         this.nodes = data.nodes.map(mapNode);
 
         this.connections = data.connections.map(function (connection) {
